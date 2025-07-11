@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
 import os
 import subprocess
+import asyncio
 from telegram import Bot
 import requests
 import json
 
-# Load config
+# Load config for non-sensitive settings
 with open('config.json', 'r') as f:
     config = json.load(f)
 
-# Env vars from config (for GitHub Actions/Heroku)
-os.environ['TELEGRAM_TOKEN'] = config['telegram']['bot_token']
-os.environ['MAIN_CHAT_ID'] = config['telegram']['chat_id']
-os.environ['CG_PROCESS_TOKEN'] = "YOUR_CG_PROCESS_TOKEN_HERE"  # Replace with actual
-os.environ['CG_CHAT_ID'] = "YOUR_CG_CHAT_ID_HERE"  # Replace with actual
-os.environ['GROK_API_KEY'] = "YOUR_GROK_API_KEY_HERE"  # Replace with actual
+# Env vars from Heroku Config Vars (already set via deployment environment)
+# Ensure these are set in Heroku: TELEGRAM_TOKEN, MAIN_CHAT_ID, CG_PROCESS_TOKEN, CG_CHAT_ID, GROK_API_KEY
+os.environ.setdefault('TELEGRAM_TOKEN', config['telegram']['bot_token'])
+os.environ.setdefault('MAIN_CHAT_ID', config['telegram']['chat_id'])
+os.environ.setdefault('CG_PROCESS_TOKEN', os.environ.get('CG_PROCESS_TOKEN', ''))
+os.environ.setdefault('CG_CHAT_ID', os.environ.get('CG_CHAT_ID', ''))
+os.environ.setdefault('GROK_API_KEY', os.environ.get('GROK_API_KEY', ''))
 
-def run_script(script_name):
-    cg_bot = Bot(os.environ['CG_PROCESS_TOKEN'])
-    cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Starting {script_name}...")
+async def run_script(script_name, bot):
+    await bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Starting {script_name}...")
     result = subprocess.run(['python3', script_name], capture_output=True, text=True)
     if result.returncode == 0:
-        cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"{script_name} completed successfully.")
+        await bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"{script_name} completed successfully.")
     else:
-        cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Error in {script_name}: {result.stderr}")
+        await bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Error in {script_name}: {result.stderr}")
     # Grok validation with error handling
     try:
         grok_response = requests.post('https://api.x.ai/v1/chat/completions', 
@@ -33,11 +34,15 @@ def run_script(script_name):
             validation_text = grok_response['choices'][0].get('message', {}).get('content', 'No validation response')
         else:
             validation_text = 'Grok API response invalid or empty'
-        cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Grok validation for {script_name}: {validation_text}")
+        await bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Grok validation for {script_name}: {validation_text}")
     except Exception as e:
-        cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Grok validation error for {script_name}: {str(e)}")
+        await bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Grok validation error for {script_name}: {str(e)}")
 
-if __name__ == "__main__":
+async def main():
+    bot = Bot(os.environ['CG_PROCESS_TOKEN'])
     scripts = ['news_scraper.py', 'hindi_auditor.py', 'mp3_generator.py', 'telegram_sender.py']
     for script in scripts:
-        run_script(script)
+        await run_script(script, bot)
+
+if __name__ == "__main__":
+    asyncio.run(main())
