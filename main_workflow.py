@@ -40,12 +40,16 @@ async def run_script(script_name, bot):
 
 async def main():
     bot = Bot(os.environ['CG_PROCESS_TOKEN'])
+    first_run = True
     while True:
         scripts = ['news_scraper.py', 'hindi_auditor.py', 'mp3_generator.py', 'telegram_sender.py']
         for script in scripts:
             await run_script(script, bot)
-        # Wait for 4 hours (14400 seconds) as per config.json scraping_interval_hours
-        await asyncio.sleep(14400)
+        # Initial short delay for testing (5 minutes), then 4-hour interval
+        delay = 300 if first_run else 14400  # 300 seconds = 5 minutes, 14400 seconds = 4 hours
+        first_run = False
+        await bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Worker sleeping for {delay/60} minutes...")
+        await asyncio.sleep(delay)
 
 if __name__ == "__main__":
     asyncio.run(main())
