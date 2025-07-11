@@ -5,13 +5,13 @@ import asyncio
 from telegram import Bot
 import requests
 import json
+import time
 
 # Load config for non-sensitive settings
 with open('config.json', 'r') as f:
     config = json.load(f)
 
 # Env vars from Heroku Config Vars (already set via deployment environment)
-# Ensure these are set in Heroku: TELEGRAM_TOKEN, MAIN_CHAT_ID, CG_PROCESS_TOKEN, CG_CHAT_ID, GROK_API_KEY
 os.environ.setdefault('TELEGRAM_TOKEN', config['telegram']['bot_token'])
 os.environ.setdefault('MAIN_CHAT_ID', config['telegram']['chat_id'])
 os.environ.setdefault('CG_PROCESS_TOKEN', os.environ.get('CG_PROCESS_TOKEN', ''))
@@ -40,9 +40,12 @@ async def run_script(script_name, bot):
 
 async def main():
     bot = Bot(os.environ['CG_PROCESS_TOKEN'])
-    scripts = ['news_scraper.py', 'hindi_auditor.py', 'mp3_generator.py', 'telegram_sender.py']
-    for script in scripts:
-        await run_script(script, bot)
+    while True:
+        scripts = ['news_scraper.py', 'hindi_auditor.py', 'mp3_generator.py', 'telegram_sender.py']
+        for script in scripts:
+            await run_script(script, bot)
+        # Wait for 4 hours (14400 seconds) as per config.json scraping_interval_hours
+        await asyncio.sleep(14400)
 
 if __name__ == "__main__":
     asyncio.run(main())
