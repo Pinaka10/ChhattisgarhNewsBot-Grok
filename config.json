@@ -1,0 +1,25 @@
+{
+  "telegram": {
+    "bot_token": "YOUR_ACTUAL_BOT_TOKEN_HERE",  # Replace with your main bot token
+    "chat_id": "1393129839"
+  },
+  "scraping": {
+    "max_news_items": 6,
+    "scraping_interval_hours": 4,
+    "delivery_time": "20:00"
+  },
+  "audio": {
+    "max_characters": 4500,
+    "language": "hi",
+    "slow_speech": false
+  },
+  "audit": {
+    "enable_profanity_filter": true,
+    "enable_professional_replacements": true,
+    "enable_categorization": true
+  },
+  "logging": {
+    "level": "INFO",
+    "max_log_files": 7
+  }
+}
