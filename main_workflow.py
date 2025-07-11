@@ -24,9 +24,18 @@ def run_script(script_name):
         cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"{script_name} completed successfully.")
     else:
         cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Error in {script_name}: {result.stderr}")
-    # Grok validation
-    grok_response = requests.post('https://api.x.ai/v1/chat/completions', headers={'Authorization': f'Bearer {os.environ["GROK_API_KEY"]}'}, json={'model': 'grok', 'messages': [{'role': 'user', 'content': f'Validate {script_name} output: Check for hallucinations, bias, profanity'}]}).json()
-    cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Grok validation for {script_name}: {grok_response['choices'][0]['message']['content']}")
+    # Grok validation with error handling
+    try:
+        grok_response = requests.post('https://api.x.ai/v1/chat/completions', 
+                                     headers={'Authorization': f'Bearer {os.environ["GROK_API_KEY"]}'}, 
+                                     json={'model': 'grok', 'messages': [{'role': 'user', 'content': f'Validate {script_name} output: Check for hallucinations, bias, profanity'}]}).json()
+        if 'choices' in grok_response and grok_response['choices']:
+            validation_text = grok_response['choices'][0].get('message', {}).get('content', 'No validation response')
+        else:
+            validation_text = 'Grok API response invalid or empty'
+        cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Grok validation for {script_name}: {validation_text}")
+    except Exception as e:
+        cg_bot.send_message(chat_id=os.environ['CG_CHAT_ID'], text=f"Grok validation error for {script_name}: {str(e)}")
 
 if __name__ == "__main__":
     scripts = ['news_scraper.py', 'hindi_auditor.py', 'mp3_generator.py', 'telegram_sender.py']
