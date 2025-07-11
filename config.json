@@ -1,6 +1,6 @@
 {
   "telegram": {
-    "bot_token": "YOUR_ACTUAL_BOT_TOKEN_HERE",  # Replace with your main bot token
+    "bot_token": "YOUR_ACTUAL_BOT_TOKEN_HERE",
     "chat_id": "1393129839"
   },
   "scraping": {
