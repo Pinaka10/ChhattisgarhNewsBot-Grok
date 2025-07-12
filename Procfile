@@ -1,1 +1,1 @@
-worker: python main_workflow.py
+worker: python3 main_workflow.py
