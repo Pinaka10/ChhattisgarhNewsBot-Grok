@@ -8,11 +8,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Heroku CLI
+        run: |
+          curl https://cli-assets.heroku.com/install.sh | sh
+          heroku --version
       - uses: akhileshns/heroku-deploy@v3.12.14
         with:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: "chhattisgarh-news-bot-grok"
+          heroku_app_name: "chhattisgarh-news-bot-grok"  # Ensure this matches your existing app
           heroku_email: "rail.treaty6l@icloud.com"
+          justlogin: true  # Logs in with API key to avoid create command
       - name: Run Heroku Logs
         run: heroku logs --tail -a chhattisgarh-news-bot-grok
         env:
