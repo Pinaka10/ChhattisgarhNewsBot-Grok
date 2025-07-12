@@ -3,4 +3,4 @@ beautifulsoup4
 gtts
 pydub
 python-telegram-bot
-indicnlp==0.9  # Specify a stable version; check https://pypi.org/project/indic-nlp-library/ for latest
+indic-nlp-library==0.9  # Correct package, ensure compatibility
