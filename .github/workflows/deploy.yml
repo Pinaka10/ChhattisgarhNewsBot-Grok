@@ -1,0 +1,19 @@
+name: Deploy Chhattisgarh News Bot
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: akhileshns/heroku-deploy@v3.12.14
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: "chhattisgarh-news-bot-grok"
+          heroku_email: "rail.treaty6l@icloud.com"
+      - name: Run Heroku Logs
+        run: heroku logs --tail -a chhattisgarh-news-bot-grok
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
