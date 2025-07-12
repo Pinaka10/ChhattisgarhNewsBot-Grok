@@ -1,5 +1,6 @@
-requests==2.31.0
-beautifulsoup4==4.12.2
-gtts==2.4.0
-lxml==4.9.3
-python-telegram-bot==20.6
+requests
+beautifulsoup4
+gtts
+pydub
+python-telegram-bot
+indicnlp==0.9  # Specify a stable version; check https://pypi.org/project/indic-nlp-library/ for latest
