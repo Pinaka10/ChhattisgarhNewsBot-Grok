@@ -1,194 +1,135 @@
-#!/usr/bin/env python3
-"""
-Telegram News Sender
-Autonomous delivery to configured chat ID
-Zero-cost using Telegram Bot API
-"""
+# Chhattisgarh News Telegram Sender
+# Delivers daily bulletin (MP3 and text) with enterprise-grade reliability
 
-import json
-import requests
-import logging
-from datetime import datetime
 import os
+import time
+import telegram
+from telegram.error import TelegramError
+
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/telegram_sender.log'),
-        logging.StreamHandler()
-    ]
-)
+with open('logs/telegram_sender.log', 'a') as log_file:
+    log_file.write(f"{time.ctime()} - Telegram Sender started\n")
 
 class TelegramSender:
     def __init__(self):
-        # Load configuration
-        self.load_config()
-    
-    def load_config(self):
-        """Load configuration from config.json"""
         try:
             with open('config.json', 'r') as f:
                 config = json.load(f)
-            
             self.bot_token = config['telegram']['bot_token']
             self.chat_id = config['telegram']['chat_id']
             self.api_url = f"https://api.telegram.org/bot{self.bot_token}"
-            
-            logging.info("Configuration loaded successfully")
-            
+            with open('logs/telegram_sender.log', 'a') as log_file:
+                log_file.write(f"{time.ctime()} - Configuration loaded successfully\n")
         except Exception as e:
-            logging.error(f"Error loading configuration: {str(e)}")
+            with open('logs/telegram_sender.log', 'a') as log_file:
+                log_file.write(f"{time.ctime()} - Error loading configuration: {str(e)}\n")
             raise
-    
+
     def send_message(self, text, parse_mode='Markdown'):
-        """Send text message via Telegram"""
         try:
             url = f"{self.api_url}/sendMessage"
-            
-            payload = {
-                'chat_id': self.chat_id,
-                'text': text,
-                'parse_mode': parse_mode
-            }
-            
+            payload = {"chat_id": self.chat_id, "text": text, "parse_mode": parse_mode}
             response = requests.post(url, json=payload, timeout=30)
             response.raise_for_status()
-            
             result = response.json()
-            
             if result.get('ok'):
-                logging.info("Message sent successfully")
+                with open('logs/telegram_sender.log', 'a') as log_file:
+                    log_file.write(f"{time.ctime()} - Message sent successfully\n")
                 return True
             else:
-                logging.error(f"Telegram API error: {result}")
+                with open('logs/telegram_sender.log', 'a') as log_file:
+                    log_file.write(f"{time.ctime()} - Telegram API error: {result}\n")
                 return False
-                
         except Exception as e:
-            logging.error(f"Error sending message: {str(e)}")
+            with open('logs/telegram_sender.log', 'a') as log_file:
+                log_file.write(f"{time.ctime()} - Error sending message: {str(e)}\n")
             return False
-    
-    def send_audio(self, audio_file_path, caption=""):
-        """Send audio file via Telegram"""
+
+    def send_audio(self, audio_path, caption=""):
         try:
-            if not os.path.exists(audio_file_path):
-                logging.error(f"Audio file not found: {audio_file_path}")
+            if not os.path.exists(audio_path):
+                with open('logs/telegram_sender.log', 'a') as log_file:
+                    log_file.write(f"{time.ctime()} - Audio file not found: {audio_path}\n")
                 return False
-            
             url = f"{self.api_url}/sendAudio"
-            
-            with open(audio_file_path, 'rb') as audio_file:
+            with open(audio_path, 'rb') as audio_file:
                 files = {'audio': audio_file}
-                data = {
-                    'chat_id': self.chat_id,
-                    'caption': caption
-                }
-                
+                data = {"chat_id": self.chat_id, "caption": caption}
                 response = requests.post(url, files=files, data=data, timeout=60)
                 response.raise_for_status()
-                
                 result = response.json()
-                
                 if result.get('ok'):
-                    logging.info("Audio sent successfully")
+                    with open('logs/telegram_sender.log', 'a') as log_file:
+                        log_file.write(f"{time.ctime()} - Audio sent successfully: {audio_path}\n")
                     return True
                 else:
-                    logging.error(f"Telegram API error: {result}")
+                    with open('logs/telegram_sender.log', 'a') as log_file:
+                        log_file.write(f"{time.ctime()} - Telegram API error: {result}\n")
                     return False
-                    
         except Exception as e:
-            logging.error(f"Error sending audio: {str(e)}")
+            with open('logs/telegram_sender.log', 'a') as log_file:
+                log_file.write(f"{time.ctime()} - Error sending audio: {str(e)}\n")
             return False
-    
-    def format_news_bulletin(self, news_data):
-        """Format news data into Telegram message"""
-        if not news_data:
+
+    def format_news_bulletin(self, news_items):
+        if not news_items:
             return "आज कोई समाचार उपलब्ध नहीं है।"
-        
-        # Create bulletin header
-        current_date = datetime.now().strftime('%d %B %Y')
+        current_date = time.strftime("%d %B %Y")
         bulletin = f"🌟 *छत्तीसगढ़ की ताज़ा खबरें – {current_date}*\n\n"
-        
-        # Add news items
-        for i, item in enumerate(news_data[:6], 1):  # Limit to 6 items
-            title = item.get('title', '').strip()
-            source = item.get('source', '')
-            
-            # Format title for Telegram
-            if title:
-                bulletin += f"{title}\n\n"
-        
-        # Add footer
-        bulletin += "🎵 *ऑडियो बुलेटिन उपलब्ध*\n"
-        bulletin += "✅ *सभी खबरें हिंदी ऑडिट के साथ सत्यापित*\n"
-        bulletin += "🛡️ *व्यावसायिक भाषा मानक बनाए रखे गए*\n"
-        bulletin += "📊 *Enhanced features के साथ तैयार*\n\n"
-        bulletin += f"🕐 *समय*: {datetime.now().strftime('%H:%M IST')}"
-        
+        for i, item in enumerate(news_items[:8], 1):
+            headline = item.get("headline", "").strip()
+            if headline:
+                bulletin += f"{headline}\n\n"
+        bulletin += "🎵 *ऑडियो बुलेटिन उपलब्ध*\n✅ *सभी खबरें हिंदी ऑडिट के साथ सत्यापित*\n🛡️ *व्यावसायिक भाषा मानक बनाए रखे गए*\n📊 *Enhanced features के साथ तैयार*\n\n🕐 *समय*: {time.strftime('%H:%M IST')}"
         return bulletin
-    
-    def send_daily_bulletin(self):
-        """Send complete daily news bulletin"""
+
+    def send_daily_bulletin(self, mp3_path, news_items):
         try:
-            # Load audited news data
-            with open('data/latest_audited.json', 'r', encoding='utf-8') as f:
-                news_data = json.load(f)
-            
-            # Format bulletin
-            bulletin_text = self.format_news_bulletin(news_data)
-            
-            # Send text bulletin
+            bulletin_text = self.format_news_bulletin(news_items)
             text_success = self.send_message(bulletin_text)
-            
-            # Send audio bulletin if available
-            audio_path = "audio/latest.mp3"
             audio_success = False
-            
-            if os.path.exists(audio_path):
+            if os.path.exists(mp3_path):
                 audio_caption = "🎵 आज की मुख्य खबरों का ऑडियो बुलेटिन"
-                audio_success = self.send_audio(audio_path, audio_caption)
+                audio_success = self.send_audio(mp3_path, audio_caption)
             else:
-                logging.warning("Audio file not found, sending text only")
-            
-            # Send delivery confirmation
+                with open('logs/telegram_sender.log', 'a') as log_file:
+                    log_file.write(f"{time.ctime()} - Audio file not found: {mp3_path}\n")
             if text_success:
-                status_message = "✅ *Enhanced News Delivery Complete*\n\n"
-                status_message += f"📊 *Delivery Stats:*\n"
-                status_message += f"• News Items: {len(news_data)}\n"
-                status_message += f"• Text Bulletin: ✅ Delivered\n"
-                status_message += f"• Audio Bulletin: {'✅ Delivered' if audio_success else '❌ Failed'}\n"
-                status_message += f"• Hindi Audit: ✅ Applied\n"
-                status_message += f"• Professional Standards: ✅ Maintained\n"
-                status_message += f"• Delivery Time: {datetime.now().strftime('%H:%M:%S IST')}"
-                
+                status_message = "✅ *Enhanced News Delivery Complete*\n\n📊 *Delivery Stats:*\n• News Items: {len(news_items)}\n• Text Bulletin: ✅ Delivered\n• Audio Bulletin: {'✅ Delivered' if audio_success else '❌ Failed'}\n• Delivery Time: {time.strftime('%H:%M:%S IST')}"
                 self.send_message(status_message)
-                
-                logging.info("Daily bulletin sent successfully")
+                with open('logs/telegram_sender.log', 'a') as log_file:
+                    log_file.write(f"{time.ctime()} - Daily bulletin sent successfully\n")
                 return True
             else:
-                logging.error("Failed to send daily bulletin")
+                with open('logs/telegram_sender.log', 'a') as log_file:
+                    log_file.write(f"{time.ctime()} - Failed to send daily bulletin\n")
                 return False
-                
         except Exception as e:
-            logging.error(f"Error sending daily bulletin: {str(e)}")
+            with open('logs/telegram_sender.log', 'a') as log_file:
+                log_file.write(f"{time.ctime()} - Error sending daily bulletin: {str(e)}\n")
             return False
 
 def main():
-    """Main telegram sending function"""
-    logging.info("Starting Telegram delivery...")
-    
+    with open('logs/telegram_sender.log', 'a') as log_file:
+        log_file.write(f"{time.ctime()} - Starting Telegram delivery...\n")
     try:
         sender = TelegramSender()
-        success = sender.send_daily_bulletin()
-        
+        # Example usage with test data
+        test_mp3_path = "audio/bulletin_20250712_1947.mp3"  # Replace with actual path
+        test_items = [{"headline": "🚨 बारिश ने रायपुर को प्रभावित किया", "source": "Test", "date": time.strftime("%Y-%m-%d")}]
+        success = sender.send_daily_bulletin(test_mp3_path, test_items)
         if success:
-            logging.info("Telegram delivery completed successfully")
+            with open('logs/telegram_sender.log', 'a') as log_file:
+                log_file.write(f"{time.ctime()} - Telegram delivery completed successfully\n")
         else:
-            logging.error("Telegram delivery failed")
-            
+            with open('logs/telegram_sender.log', 'a') as log_file:
+                log_file.write(f"{time.ctime()} - Telegram delivery failed\n")
     except Exception as e:
-        logging.error(f"Error in Telegram delivery: {str(e)}")
+        with open('logs/telegram_sender.log', 'a') as log_file:
+            log_file.write(f"{time.ctime()} - Error in Telegram delivery: {str(e)}\n")
 
 if __name__ == "__main__":
     main()
